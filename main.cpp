@@ -1,6 +1,81 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <iostream>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+#include <algorithm>
+#include <random>
+
+static std::random_device rd;
+static std::mt19937 gen(rd());
+const int ROWS = 20;
+const int COLS = 20;
+//std::vector<std::vector<int>> maze;
+std::vector<std::vector<int>> maze(ROWS, std::vector<int>(COLS, 0));
+
+
+
+// 0 = dinding, 1 = jalan
+//int maze[ROWS][COLS];
+
+struct Cell {
+    int r, c;
+};
+
+int dr[4] = {-2, 2, 0, 0}; // langkah 2 sel
+int dc[4] = {0, 0, -2, 2};
+
+bool inBounds(int r, int c) {
+    return r > 0 && r < ROWS-1 && c > 0 && c < COLS-1;
+}
+
+void dfs(int r, int c) {
+    maze[r][c] = 1; // tandai sebagai jalan
+
+    // buat urutan arah acak
+    std::vector<int> dirs = {0,1,2,3};
+    std::shuffle(dirs.begin(), dirs.end(), gen);
+
+    for (int i : dirs) {
+        int nr = r + dr[i];
+        int nc = c + dc[i];
+        if (inBounds(nr, nc) && maze[nr][nc] == 0) {
+            // buka dinding di antara
+            maze[r + dr[i]/2][c + dc[i]/2] = 1;
+            dfs(nr, nc);
+        }
+    }
+}
+
+void genMaze() {
+    // init semua jadi dinding
+   /* for (int r=0; r<ROWS; r++)
+        for (int c=0; c<COLS; c++)
+            maze[r][c] = 0;*/
+
+    //srand(time(0));
+    dfs(1,1); // mulai dari (1,1)
+}
+
+int rw = 38;
+int rh = 38;
+
+void renderMaze(SDL_Renderer* renderer) {
+    SDL_Rect r;
+    r.w = rw;
+    r.h = rh;
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    for(int i = 0; i < COLS; ++i) {
+        for(int j = 0; j < ROWS; ++j) {
+            if(maze[i][j] == 0) {
+                r.x = i * rw;
+                r.y = j * rh;
+                SDL_RenderFillRect(renderer, &r);
+            }
+        }
+    }
+}
 
 int main() {
         if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -67,12 +142,13 @@ int main() {
     int pY = 10;
     SDL_Event event;
     bool running = true;
-    int cX = 0;
-    int cY = 0;
+    int cX = 38;
+    int cY = 38;
     bool down = false;
     bool down2 = false;
     SDL_FingerID fingerId1 = -1;
 SDL_FingerID fingerId2 = -1;
+genMaze();
     
         while (running) {
                 int mX, mY, mmX, mmY;
@@ -119,14 +195,20 @@ if (((mX >= buttonLeft.x && mX <= buttonLeft.x + buttonLeft.w) &&
      (mY >= buttonLeft.y && mY <= buttonLeft.y + buttonLeft.h)) ||
     ((mmX >= buttonLeft.x && mmX <= buttonLeft.x + buttonLeft.w) &&
      (mmY >= buttonLeft.y && mmY <= buttonLeft.y + buttonLeft.h))) {
-    cX -= 10;
+         if(maze[(cX - 10)/ rw][cY / rh] == 1)
+             cX -= 10;
+         else
+             cX -= (cX % rw);
 }
 // Button Right
 if (((mX >= buttonRight.x && mX <= buttonRight.x + buttonRight.w) &&
           (mY >= buttonRight.y && mY <= buttonRight.y + buttonRight.h)) ||
          ((mmX >= buttonRight.x && mmX <= buttonRight.x + buttonRight.w) &&
           (mmY >= buttonRight.y && mmY <= buttonRight.y + buttonRight.h))) {
-    cX += 10;
+              if(maze[(cX / rw) + 1][cY / rh] == 1)
+              cX += 10;
+              else
+              cX += 10 - (cX % rw);
 }
                         
 // Button Up
@@ -134,14 +216,20 @@ if (((mX >= buttonUp.x && mX <= buttonUp.x + buttonUp.w) &&
      (mY >= buttonUp.y && mY <= buttonUp.y + buttonUp.h)) ||
     ((mmX >= buttonUp.x && mmX <= buttonUp.x + buttonUp.w) &&
      (mmY >= buttonUp.y && mmY <= buttonUp.y + buttonUp.h))) {
+         if(maze[cX / rw][(cY - 10)/ rh] == 1)
     cY -= 10;
+    else
+    cY -= (cY % rh);
 }
 // Button Down
 if (((mX >= buttonDown.x && mX <= buttonDown.x + buttonDown.w) &&
           (mY >= buttonDown.y && mY <= buttonDown.y + buttonDown.h)) ||
          ((mmX >= buttonDown.x && mmX <= buttonDown.x + buttonDown.w) &&
           (mmY >= buttonDown.y && mmY <= buttonDown.y + buttonDown.h))) {
+              if(maze[cX / rw][(cY / rh) + 1])
     cY += 10;
+    else
+    cY += 10 - (cY % rh);
 }
 // Button Click
 if (((mX >= buttonClick.x && mX <= buttonClick.x + buttonClick.w) &&
@@ -156,10 +244,11 @@ if (((mX >= buttonClick.x && mX <= buttonClick.x + buttonClick.w) &&
                         }
                             
 
-        
+
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
+        renderMaze(renderer);
         SDL_Rect dest = {pX, pY, 128, 128};
         SDL_RenderCopy(renderer, tP, NULL, &dest);
 
