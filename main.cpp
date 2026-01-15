@@ -354,6 +354,8 @@ int main() {
   }
 
   SDL_DestroyTexture(tCursor);
+  SDL_DestroyTexture(tStickman);
+  SDL_DestroyTexture(tP);
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   IMG_Quit();
