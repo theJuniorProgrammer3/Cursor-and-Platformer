@@ -14,7 +14,6 @@ int ROWS = 20;
 int COLS = 100;
 int w, h;
 SDL_Rect camera = {0, 0, w, h};  // w,h = ukuran window
-// std::vector<std::vector<int>> maze;
 std::vector<std::vector<int>> maze(ROWS, std::vector<int>(COLS, 0));
 
 // 0 = dinding, 1 = jalan
@@ -50,12 +49,6 @@ void dfs(int r, int c) {
 }
 
 void genMaze() {
-  // init semua jadi dinding
-  /* for (int r=0; r<ROWS; r++)
-       for (int c=0; c<COLS; c++)
-           maze[r][c] = 0;*/
-
-  // srand(time(0));
   dfs(1, 1);  // mulai dari (1,1)
 }
 
@@ -78,6 +71,22 @@ void renderMaze(SDL_Renderer* renderer) {
   }
 }
 
+void gameOver(SDL_Renderer* renderer, SDL_Event event) {
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderClear(renderer);
+  SDL_Surface* s = IMG_Load("gover.png");
+  SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+  SDL_FreeSurface(s);
+  SDL_Rect go = {0, 0, w, h};
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 128);
+  SDL_RenderFillRect(renderer, &camera);
+  SDL_RenderCopy(renderer, t, NULL, &go);
+  SDL_RenderPresent(renderer);
+  while (SDL_WaitEvent(&event)) {
+    if (event.type == SDL_FINGERDOWN) break;
+  }
+  SDL_DestroyTexture(t);
+}
 
 int main() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -90,10 +99,8 @@ int main() {
     return -1;
   }
   SDL_Window* window =
-      SDL_CreateWindow("CURSOR PLATFORMER", SDL_WINDOWPOS_CENTERED,
-                       SDL_WINDOWPOS_CENTERED, 1, 1, SDL_WINDOW_FULLSCREEN);
-  SDL_Renderer* renderer =
-      SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+      SDL_CreateWindow("CURSOR PLATFORMER", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1, 1, SDL_WINDOW_FULLSCREEN);
+  SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   SDL_Surface* surface = IMG_Load("cursor.png");
   if (!surface) {
@@ -103,6 +110,7 @@ int main() {
   SDL_Texture* tCursor = SDL_CreateTextureFromSurface(renderer, surface);
   SDL_FreeSurface(surface);
   SDL_GetWindowSize(window, &w, &h);
+  camera = {0, 0, w, h};
   SDL_Rect buttonLeft;
   buttonLeft.x = 10;
   buttonLeft.y = h - 250;
@@ -139,14 +147,21 @@ int main() {
   buttonSwap.w = 150;
   buttonSwap.h = 100;
 
-  surface = IMG_Load("phldr.png");
+  surface = IMG_Load("obs.png");
   SDL_Texture* tP = SDL_CreateTextureFromSurface(renderer, surface);
   SDL_FreeSurface(surface);
+  std::vector<SDL_Rect> obstacles;
+  for (int i = 0; i < 100; i++) {
+    SDL_Rect obs;
+    obs.x = rand() % ((COLS * rw) - 128);
+    obs.y = rand() % ((ROWS * rh) - 128);
+    obs.w = 128;
+    obs.h = 128;
+    obstacles.push_back(obs);
+  }
   surface = IMG_Load("stickman.png");
   SDL_Texture* tStickman = SDL_CreateTextureFromSurface(renderer, surface);
   SDL_FreeSurface(surface);
-  int pX = 10;
-  int pY = 10;
   SDL_Event event;
   bool running = true;
   int cX = 38;
@@ -159,6 +174,7 @@ int main() {
   bool down2 = false;
   bool isCursor = false;
   bool isJump = false;
+  bool isGameOver = false;
   SDL_FingerID fingerId1 = -1;
   SDL_FingerID fingerId2 = -1;
 
@@ -166,17 +182,25 @@ int main() {
 
   while (running) {
     int mX, mY, mmX, mmY;
-    // SDL_FingerID fingerId1 = -1;
-    // SDL_FingerID fingerId2 = -1;
-    // Uint32 mouseState = SDL_GetMouseState(&mX, &mY);
     camera.x = cX - w / 2;
     camera.y = cY - h / 2;
 
-    // Pastikan kamera tidak keluar dari maze
+    // Ensure camera doesn't out of maze
     if (camera.x < 0) camera.x = 0;
     if (camera.y < 0) camera.y = 0;
     if (camera.x > COLS * rw - camera.w) camera.x = COLS * rw - camera.w;
     if (camera.y > ROWS * rh - camera.h) camera.y = ROWS * rh - camera.h;
+
+    bool tmp = false;
+    for (auto& obs : obstacles) {
+      if (sX >= obs.x && sX <= obs.x + obs.w && sY >= obs.y &&
+          sY <= obs.y + obs.h) {
+        tmp = true;
+        isGameOver = true;
+        break;
+      }
+    }
+    if (tmp) break;
 
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) running = false;
@@ -294,9 +318,12 @@ int main() {
            (mY >= buttonClick.y && mY <= buttonClick.y + buttonClick.h)) ||
           ((mmX >= buttonClick.x && mmX <= buttonClick.x + buttonClick.w) &&
            (mmY >= buttonClick.y && mmY <= buttonClick.y + buttonClick.h))) {
-        if (cX >= pX && cX <= pX + 128 && cY >= pY && cY <= pY + 128) {
-          pX = rand() % ((COLS * rw) - 128) + 1;
-          pY = rand() % ((ROWS * rh) - 128) + 1;
+        for (auto& obs : obstacles) {
+          if (cX >= obs.x && cX <= obs.x + obs.w && cY >= obs.y &&
+              cY <= obs.y + obs.h) {
+            obs.x = rand() % ((COLS * rw) - 128);
+            obs.y = rand() % ((ROWS * rh) - 128);
+          }
         }
       }
     }
@@ -312,7 +339,7 @@ int main() {
       if (!isJump) {
         vsY = 0;
         sY += rh - (sY % rh) - 28;
-        // empty space beetween ground and stickman's  foot
+        // empty space beetween ground and stickman's foot
       } else {
         vsY += gravity;
         if (maze[((sY + 28 + vsY) / rh)][sX / rw] == 1 &&
@@ -331,9 +358,12 @@ int main() {
     SDL_RenderClear(renderer);
     // Maze
     renderMaze(renderer);
-    // Placeholder :)
-    SDL_Rect dest = {pX - camera.x, pY - camera.y, 128, 128};
-    SDL_RenderCopy(renderer, tP, NULL, &dest);
+    SDL_Rect dest = {0, 0, 128, 128};
+    // Obstacle
+    for (auto& obs : obstacles) {
+      dest = {obs.x - camera.x, obs.y - camera.y, obs.w, obs.h};
+      SDL_RenderCopy(renderer, tP, NULL, &dest);
+    }
     // Stickman
     dest = {sX - camera.x, sY - camera.y, 19, 28};
     SDL_RenderCopy(renderer, tStickman, NULL, &dest);
@@ -351,6 +381,9 @@ int main() {
 
     SDL_RenderPresent(renderer);
     SDL_Delay(10);
+  }
+  if (isGameOver) {
+    gameOver(renderer, event);
   }
 
   SDL_DestroyTexture(tCursor);
