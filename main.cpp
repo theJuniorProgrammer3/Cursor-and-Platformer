@@ -13,7 +13,7 @@ static std::mt19937 gen(rd());
 int ROWS = 20;
 int COLS = 100;
 int w, h;
-SDL_Rect camera = {0, 0, w, h};  // w,h = ukuran window
+SDL_Rect camera = {0, 0, w, h};	 // w,h = ukuran window
 std::vector<std::vector<int>> maze(ROWS, std::vector<int>(COLS, 0));
 
 // 0 = dinding, 1 = jalan
@@ -63,9 +63,9 @@ void renderMaze(SDL_Renderer* renderer) {
   for (int i = 0; i < ROWS; ++i) {
     for (int j = 0; j < COLS; ++j) {
       if (maze[i][j] == 0) {
-        r.x = j * rw - camera.x;
-        r.y = i * rh - camera.y;
-        SDL_RenderFillRect(renderer, &r);
+	r.x = j * rw - camera.x;
+	r.y = i * rh - camera.y;
+	SDL_RenderFillRect(renderer, &r);
       }
     }
   }
@@ -151,10 +151,12 @@ int main() {
   SDL_Texture* tP = SDL_CreateTextureFromSurface(renderer, surface);
   SDL_FreeSurface(surface);
   std::vector<SDL_Rect> obstacles;
+  std::uniform_int_distribution<int> dX(0, (COLS * rw) - 128 - 1);
+  std::uniform_int_distribution<int> dY(0, (ROWS * rh) - 128 - 1);
   for (int i = 0; i < 100; i++) {
     SDL_Rect obs;
-    obs.x = rand() % ((COLS * rw) - 128);
-    obs.y = rand() % ((ROWS * rh) - 128);
+    obs.x = dX(gen);
+    obs.y = dY(gen);
     obs.w = 128;
     obs.h = 128;
     obstacles.push_back(obs);
@@ -194,10 +196,10 @@ int main() {
     bool tmp = false;
     for (auto& obs : obstacles) {
       if (sX >= obs.x && sX <= obs.x + obs.w && sY >= obs.y &&
-          sY <= obs.y + obs.h) {
-        tmp = true;
-        isGameOver = true;
-        break;
+	  sY <= obs.y + obs.h) {
+	tmp = true;
+	isGameOver = true;
+	break;
       }
     }
     if (tmp) break;
@@ -207,124 +209,124 @@ int main() {
 
       // Finger down
       if (event.type == SDL_FINGERDOWN) {
-        if (!down) {
-          mX = event.tfinger.x * w;
-          mY = event.tfinger.y * h;
-          fingerId1 = event.tfinger.fingerId;
-          down = true;
-        } else {
-          mmX = event.tfinger.x * w;
-          mmY = event.tfinger.y * h;
-          fingerId2 = event.tfinger.fingerId;
-          down2 = true;
-        }
-        // Button Swap
-        if (((mX >= buttonSwap.x && mX <= buttonSwap.x + buttonSwap.w) &&
-             (mY >= buttonSwap.y && mY <= buttonSwap.y + buttonSwap.h)) ||
-            ((mmX >= buttonSwap.x && mmX <= buttonSwap.x + buttonSwap.w) &&
-             (mmY >= buttonSwap.y && mmY <= buttonSwap.y + buttonSwap.h))) {
-          isCursor = !isCursor;
-        }
-        // Button Up (Stickman)
-        if (((mX >= buttonUp.x && mX <= buttonUp.x + buttonUp.w) &&
-             (mY >= buttonUp.y && mY <= buttonUp.y + buttonUp.h)) ||
-            ((mmX >= buttonUp.x && mmX <= buttonUp.x + buttonUp.w) &&
-             (mmY >= buttonUp.y && mmY <= buttonUp.y + buttonUp.h))) {
-          if (!isCursor) {
-            if (maze[(sY / rh) - 1][sX / rw] == 1) {
-              // need update for the condition: currently have bug
-              isJump = true;
-              vsY = -5;
-            } else {
-              sY -= (sY % rh);
-            }
-          }
-        }
+	if (!down) {
+	  mX = event.tfinger.x * w;
+	  mY = event.tfinger.y * h;
+	  fingerId1 = event.tfinger.fingerId;
+	  down = true;
+	} else {
+	  mmX = event.tfinger.x * w;
+	  mmY = event.tfinger.y * h;
+	  fingerId2 = event.tfinger.fingerId;
+	  down2 = true;
+	}
+	// Button Swap
+	if (((mX >= buttonSwap.x && mX <= buttonSwap.x + buttonSwap.w) &&
+	     (mY >= buttonSwap.y && mY <= buttonSwap.y + buttonSwap.h)) ||
+	    ((mmX >= buttonSwap.x && mmX <= buttonSwap.x + buttonSwap.w) &&
+	     (mmY >= buttonSwap.y && mmY <= buttonSwap.y + buttonSwap.h))) {
+	  isCursor = !isCursor;
+	}
+	// Button Up (Stickman)
+	if (((mX >= buttonUp.x && mX <= buttonUp.x + buttonUp.w) &&
+	     (mY >= buttonUp.y && mY <= buttonUp.y + buttonUp.h)) ||
+	    ((mmX >= buttonUp.x && mmX <= buttonUp.x + buttonUp.w) &&
+	     (mmY >= buttonUp.y && mmY <= buttonUp.y + buttonUp.h))) {
+	  if (!isCursor) {
+	    if (maze[(sY / rh) - 1][sX / rw] == 1) {
+	      // need update for the condition: currently have bug
+	      isJump = true;
+	      vsY = -5;
+	    } else {
+	      sY -= (sY % rh);
+	    }
+	  }
+	}
       }
 
       // Finger up
       if (event.type == SDL_FINGERUP) {
-        if (event.tfinger.fingerId == fingerId1) {
-          mX = -5;
-          mY = -5;
-          down = false;
-        } else if (event.tfinger.fingerId == fingerId2) {
-          mmX = -5;
-          mmY = -5;
-          down2 = false;
-        }
+	if (event.tfinger.fingerId == fingerId1) {
+	  mX = -5;
+	  mY = -5;
+	  down = false;
+	} else if (event.tfinger.fingerId == fingerId2) {
+	  mmX = -5;
+	  mmY = -5;
+	  down2 = false;
+	}
       }
     }
     if (down || down2) {
       // Button Left
       if (((mX >= buttonLeft.x && mX <= buttonLeft.x + buttonLeft.w) &&
-           (mY >= buttonLeft.y && mY <= buttonLeft.y + buttonLeft.h)) ||
-          ((mmX >= buttonLeft.x && mmX <= buttonLeft.x + buttonLeft.w) &&
-           (mmY >= buttonLeft.y && mmY <= buttonLeft.y + buttonLeft.h))) {
-        if (isCursor) {
-          if (maze[cY / rh][(cX - 10) / rw] == 1)
-            cX -= 10;
-          else
-            cX -= (cX % rw);
-        } else {
-          if (maze[sY / rh][(sX - 10) / rw] == 1)
-            sX -= 10;
-          else
-            sX -= (sX % rw);
-        }
+	   (mY >= buttonLeft.y && mY <= buttonLeft.y + buttonLeft.h)) ||
+	  ((mmX >= buttonLeft.x && mmX <= buttonLeft.x + buttonLeft.w) &&
+	   (mmY >= buttonLeft.y && mmY <= buttonLeft.y + buttonLeft.h))) {
+	if (isCursor) {
+	  if (maze[cY / rh][(cX - 10) / rw] == 1)
+	    cX -= 10;
+	  else
+	    cX -= (cX % rw);
+	} else {
+	  if (maze[sY / rh][(sX - 10) / rw] == 1)
+	    sX -= 10;
+	  else
+	    sX -= (sX % rw);
+	}
       }
       // Button Right
       if (((mX >= buttonRight.x && mX <= buttonRight.x + buttonRight.w) &&
-           (mY >= buttonRight.y && mY <= buttonRight.y + buttonRight.h)) ||
-          ((mmX >= buttonRight.x && mmX <= buttonRight.x + buttonRight.w) &&
-           (mmY >= buttonRight.y && mmY <= buttonRight.y + buttonRight.h))) {
-        if (isCursor) {
-          if (maze[cY / rh][(cX / rw) + 1] == 1)
-            cX += 10;
-          else
-            cX += 10 - (cX % rw);
-        } else {
-          if (maze[sY / rh][(sX / rw) + 1] == 1)
-            sX += 10;
-          else
-            sX += 10 - (sX % rw);
-        }
+	   (mY >= buttonRight.y && mY <= buttonRight.y + buttonRight.h)) ||
+	  ((mmX >= buttonRight.x && mmX <= buttonRight.x + buttonRight.w) &&
+	   (mmY >= buttonRight.y && mmY <= buttonRight.y + buttonRight.h))) {
+	if (isCursor) {
+	  if (maze[cY / rh][(cX / rw) + 1] == 1)
+	    cX += 10;
+	  else
+	    cX += 10 - (cX % rw);
+	} else {
+	  if (maze[sY / rh][(sX / rw) + 1] == 1)
+	    sX += 10;
+	  else
+	    sX += 10 - (sX % rw);
+	}
       }
 
       // Button Up
       if (((mX >= buttonUp.x && mX <= buttonUp.x + buttonUp.w) &&
-           (mY >= buttonUp.y && mY <= buttonUp.y + buttonUp.h)) ||
-          ((mmX >= buttonUp.x && mmX <= buttonUp.x + buttonUp.w) &&
-           (mmY >= buttonUp.y && mmY <= buttonUp.y + buttonUp.h))) {
-        if (isCursor) {
-          if (maze[(cY - 10) / rh][cX / rw] == 1)
-            cY -= 10;
-          else
-            cY -= (cY % rh);
-        }
+	   (mY >= buttonUp.y && mY <= buttonUp.y + buttonUp.h)) ||
+	  ((mmX >= buttonUp.x && mmX <= buttonUp.x + buttonUp.w) &&
+	   (mmY >= buttonUp.y && mmY <= buttonUp.y + buttonUp.h))) {
+	if (isCursor) {
+	  if (maze[(cY - 10) / rh][cX / rw] == 1)
+	    cY -= 10;
+	  else
+	    cY -= (cY % rh);
+	}
       }
       // Button Down
       if (((mX >= buttonDown.x && mX <= buttonDown.x + buttonDown.w) &&
-           (mY >= buttonDown.y && mY <= buttonDown.y + buttonDown.h)) ||
-          ((mmX >= buttonDown.x && mmX <= buttonDown.x + buttonDown.w) &&
-           (mmY >= buttonDown.y && mmY <= buttonDown.y + buttonDown.h))) {
-        if (maze[(cY / rh) + 1][cX / rw])
-          cY += 10;
-        else
-          cY += 10 - (cY % rh);
+	   (mY >= buttonDown.y && mY <= buttonDown.y + buttonDown.h)) ||
+	  ((mmX >= buttonDown.x && mmX <= buttonDown.x + buttonDown.w) &&
+	   (mmY >= buttonDown.y && mmY <= buttonDown.y + buttonDown.h))) {
+	if (maze[(cY / rh) + 1][cX / rw])
+	  cY += 10;
+	else
+	  cY += 10 - (cY % rh);
       }
       // Button Click
       if (((mX >= buttonClick.x && mX <= buttonClick.x + buttonClick.w) &&
-           (mY >= buttonClick.y && mY <= buttonClick.y + buttonClick.h)) ||
-          ((mmX >= buttonClick.x && mmX <= buttonClick.x + buttonClick.w) &&
-           (mmY >= buttonClick.y && mmY <= buttonClick.y + buttonClick.h))) {
-        for (auto& obs : obstacles) {
-          if (cX >= obs.x && cX <= obs.x + obs.w && cY >= obs.y &&
-              cY <= obs.y + obs.h) {
-            obs.x = rand() % ((COLS * rw) - 128);
-            obs.y = rand() % ((ROWS * rh) - 128);
-          }
-        }
+	   (mY >= buttonClick.y && mY <= buttonClick.y + buttonClick.h)) ||
+	  ((mmX >= buttonClick.x && mmX <= buttonClick.x + buttonClick.w) &&
+	   (mmY >= buttonClick.y && mmY <= buttonClick.y + buttonClick.h))) {
+	for (auto& obs : obstacles) {
+	  if (cX >= obs.x && cX <= obs.x + obs.w && cY >= obs.y &&
+	      cY <= obs.y + obs.h) {
+	    obs.x = dX(gen);
+	    obs.y = dY(gen);
+	  }
+	}
       }
     }
     // Stickman gravity
@@ -337,19 +339,19 @@ int main() {
       isJump = false;
     } else {
       if (!isJump) {
-        vsY = 0;
-        sY += rh - (sY % rh) - 28;
-        // empty space beetween ground and stickman's foot
+	vsY = 0;
+	sY += rh - (sY % rh) - 28;
+	// empty space beetween ground and stickman's foot
       } else {
-        vsY += gravity;
-        if (maze[((sY + 28 + vsY) / rh)][sX / rw] == 1 &&
-            maze[((sY + 28 + vsY) / rh)][(sX + 19 - 1) / rw] == 1)
-          sY += vsY;
-        else {
-          vsY += gravity;
-          sY -= sY % rh;
-          isJump = false;
-        }
+	vsY += gravity;
+	if (maze[((sY + 28 + vsY) / rh)][sX / rw] == 1 &&
+	    maze[((sY + 28 + vsY) / rh)][(sX + 19 - 1) / rw] == 1)
+	  sY += vsY;
+	else {
+	  vsY += gravity;
+	  sY -= sY % rh;
+	  isJump = false;
+	}
       }
     }
     // Init
