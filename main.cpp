@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
 #include <algorithm>
 #include <cstdlib>
@@ -10,7 +11,7 @@
 
 static std::random_device rd;
 static std::mt19937 gen(rd());
-int ROWS = 20;
+int ROWS = 30;
 int COLS = 100;
 int w, h;
 SDL_Rect camera = {0, 0, w, h};	 // w,h = ukuran window
@@ -52,8 +53,8 @@ void genMaze() {
   dfs(1, 1);  // mulai dari (1,1)
 }
 
-int rw = 38;
-int rh = 38;
+int rw = 50;
+int rh = 50;
 
 void renderMaze(SDL_Renderer* renderer) {
   SDL_Rect r;
@@ -88,6 +89,23 @@ void gameOver(SDL_Renderer* renderer, SDL_Event event) {
   SDL_DestroyTexture(t);
 }
 
+void mainMenu(SDL_Renderer* renderer, SDL_Event event) {
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderClear(renderer);
+  SDL_Surface* s = IMG_Load("mMenu.png");
+  SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+  SDL_FreeSurface(s);
+  SDL_Rect go = {0, 0, w, h};
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  // SDL_RenderFillRect(renderer, &camera);
+  SDL_RenderCopy(renderer, t, NULL, &go);
+  SDL_RenderPresent(renderer);
+  while (SDL_WaitEvent(&event)) {
+    if (event.type == SDL_FINGERDOWN) break;
+  }
+  SDL_DestroyTexture(t);
+}
+
 int main() {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     std::cout << "SDL Error: " << SDL_GetError() << std::endl;
@@ -98,8 +116,9 @@ int main() {
     std::cout << "IMG_Init Error: " << IMG_GetError() << std::endl;
     return -1;
   }
+  TTF_Init();
   SDL_Window* window =
-      SDL_CreateWindow("CURSOR PLATFORMER", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1, 1, SDL_WINDOW_FULLSCREEN);
+      SDL_CreateWindow("CURSOR PLATFORMER", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
   SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   SDL_Surface* surface = IMG_Load("cursor.png");
@@ -151,9 +170,9 @@ int main() {
   SDL_Texture* tP = SDL_CreateTextureFromSurface(renderer, surface);
   SDL_FreeSurface(surface);
   std::vector<SDL_Rect> obstacles;
-  std::uniform_int_distribution<int> dX(0, (COLS * rw) - 128 - 1);
-  std::uniform_int_distribution<int> dY(0, (ROWS * rh) - 128 - 1);
-  for (int i = 0; i < 100; i++) {
+  std::uniform_int_distribution<int> dX(3 * rw, (COLS * rw) - 128 - 1);
+  std::uniform_int_distribution<int> dY(3 * rh, (ROWS * rh) - 128 - 1);
+  for (int i = 0; i < 200; i++) {
     SDL_Rect obs;
     obs.x = dX(gen);
     obs.y = dY(gen);
@@ -166,10 +185,12 @@ int main() {
   SDL_FreeSurface(surface);
   SDL_Event event;
   bool running = true;
-  int cX = 38;
-  int cY = 38;
-  int sX = 38;
-  int sY = 38;
+  const int sH = 28;
+  const int sW = 19;
+  int cX = rw;
+  int cY = rh;
+  int sX = rw;
+  int sY = rh;
   float vsY = 0;
   float gravity = 0.5;
   bool down = false;
@@ -177,15 +198,35 @@ int main() {
   bool isCursor = false;
   bool isJump = false;
   bool isGameOver = false;
+  uint8_t click = 20;
+  int clickTimer = 0;
   SDL_FingerID fingerId1 = -1;
   SDL_FingerID fingerId2 = -1;
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderClear(renderer);
+  SDL_RenderPresent(renderer);
+  SDL_Texture* textureText;
 
   genMaze();
+  mainMenu(renderer, event);
+
+  TTF_Font* font = TTF_OpenFont("Roboto-Regular.ttf", 24);
+  SDL_Color textColor = {0, 255, 255};
 
   while (running) {
+    if (clickTimer == 18750) {
+      // 1000 (ms) * 60 (s) * 5 (m), divide by 16.  so this is ~5 minute.
+      clickTimer = 0;
+      click = 20;
+    }
     int mX, mY, mmX, mmY;
     camera.x = cX - w / 2;
     camera.y = cY - h / 2;
+
+    surface = TTF_RenderText_Solid(font, (std::string("Click left: ") + std::to_string(click)).c_str(), textColor);
+    textureText = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
 
     // Ensure camera doesn't out of maze
     if (camera.x < 0) camera.x = 0;
@@ -195,8 +236,7 @@ int main() {
 
     bool tmp = false;
     for (auto& obs : obstacles) {
-      if (sX >= obs.x && sX <= obs.x + obs.w && sY >= obs.y &&
-	  sY <= obs.y + obs.h) {
+      if ((sX >= obs.x && sX <= obs.x + obs.w && sY >= obs.y && sY <= obs.y + obs.h) || (sX + sW >= obs.x && sX + sW <= obs.x + obs.w && sY + sH >= obs.y && sY + sH <= obs.y + obs.h)) {
 	tmp = true;
 	isGameOver = true;
 	break;
@@ -240,6 +280,22 @@ int main() {
 	    } else {
 	      sY -= (sY % rh);
 	    }
+	  }
+	}
+	// Button Click
+	if (((mX >= buttonClick.x && mX <= buttonClick.x + buttonClick.w) &&
+	     (mY >= buttonClick.y && mY <= buttonClick.y + buttonClick.h)) ||
+	    ((mmX >= buttonClick.x && mmX <= buttonClick.x + buttonClick.w) &&
+	     (mmY >= buttonClick.y && mmY <= buttonClick.y + buttonClick.h))) {
+	  if (click > 0) {
+	    for (auto& obs : obstacles) {
+	      if (cX >= obs.x && cX <= obs.x + obs.w && cY >= obs.y &&
+		  cY <= obs.y + obs.h) {
+		obs.x = dX(gen);
+		obs.y = dY(gen);
+	      }
+	    }
+	    click--;
 	  }
 	}
       }
@@ -315,23 +371,13 @@ int main() {
 	else
 	  cY += 10 - (cY % rh);
       }
-      // Button Click
-      if (((mX >= buttonClick.x && mX <= buttonClick.x + buttonClick.w) &&
-	   (mY >= buttonClick.y && mY <= buttonClick.y + buttonClick.h)) ||
-	  ((mmX >= buttonClick.x && mmX <= buttonClick.x + buttonClick.w) &&
-	   (mmY >= buttonClick.y && mmY <= buttonClick.y + buttonClick.h))) {
-	for (auto& obs : obstacles) {
-	  if (cX >= obs.x && cX <= obs.x + obs.w && cY >= obs.y &&
-	      cY <= obs.y + obs.h) {
-	    obs.x = dX(gen);
-	    obs.y = dY(gen);
-	  }
-	}
-      }
     }
+    // Don't noclip
+    if (vsY > rh - 1)
+      vsY = rh - 1;
     // Stickman gravity
-    bool lL = maze[(sY + 28) / rh][sX / rw] == 1;
-    bool lR = maze[(sY + 28) / rh][(sX + 19 - 1) / rw] == 1;
+    bool lL = maze[(sY + sH + vsY) / rh][sX / rw] == 1;
+    bool lR = maze[(sY + sH + vsY) / rh][(sX + sW - 1) / rw] == 1;
     // check if stickman's leg on air
     if (lL && lR) {
       vsY += gravity;
@@ -340,12 +386,12 @@ int main() {
     } else {
       if (!isJump) {
 	vsY = 0;
-	sY += rh - (sY % rh) - 28;
+	sY += rh - (sY % rh) - sH;
 	// empty space beetween ground and stickman's foot
       } else {
 	vsY += gravity;
-	if (maze[((sY + 28 + vsY) / rh)][sX / rw] == 1 &&
-	    maze[((sY + 28 + vsY) / rh)][(sX + 19 - 1) / rw] == 1)
+	if (maze[((sY + sH + vsY) / rh)][sX / rw] == 1 &&
+	    maze[((sY + sH + vsY) / rh)][(sX + sW - 1) / rw] == 1)
 	  sY += vsY;
 	else {
 	  vsY += gravity;
@@ -367,13 +413,18 @@ int main() {
       SDL_RenderCopy(renderer, tP, NULL, &dest);
     }
     // Stickman
-    dest = {sX - camera.x, sY - camera.y, 19, 28};
+    dest = {sX - camera.x, sY - camera.y, sW, sH};
     SDL_RenderCopy(renderer, tStickman, NULL, &dest);
     // Cursor
     dest = {cX - camera.x, cY - camera.y, 28, 28};
     SDL_RenderCopy(renderer, tCursor, NULL, &dest);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 128);
-    // Buttons
+    // Click
+    dest = {buttonSwap.w + 100, rh, 0, 0};
+    SDL_QueryTexture(textureText, NULL, NULL, &dest.w, &dest.h);
+    SDL_RenderCopy(renderer, textureText, NULL, &dest);
+    // SDL_RenderPresent(renderer);
+    //  Buttons
     SDL_RenderFillRect(renderer, &buttonLeft);
     SDL_RenderFillRect(renderer, &buttonRight);
     SDL_RenderFillRect(renderer, &buttonUp);
@@ -382,7 +433,9 @@ int main() {
     SDL_RenderFillRect(renderer, &buttonSwap);
 
     SDL_RenderPresent(renderer);
-    SDL_Delay(10);
+    SDL_DestroyTexture(textureText);
+    SDL_Delay(16);
+    clickTimer++;
   }
   if (isGameOver) {
     gameOver(renderer, event);
