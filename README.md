@@ -23,11 +23,24 @@ Tombol on-screen:
 - Tombol klik di bagian kanan sebelah tombol atas-bawah: klik pada rintangan untuk kursor
 - Tombol kiri atas: berpindah antara kursor dan stickman
 
+
 ## Cara menang
 Saat ini tidak ada
 
 ## Cara kalah
 Stickman menyentuh rintangan.
+
+## Lainnya
+
+### Instalasi
+
+Pastikan anda sudah menginstal SDL2 dan ekstensi image dan ttf.
+
+```bash
+clang++ main.cpp
+./a.out
+```
+(Anda juga bisa menggunakan g++, tapi mungkin dengan sedikit perubahan kode)
 
 # English version
 
@@ -61,3 +74,15 @@ Currently none
 
 ## How to lose
 Stickman hit an obstacle.
+
+## Others
+
+### Installation
+
+Make sure you have SDL2 and the image and ttf extensions installed.
+
+```bash
+clang++ main.cpp
+./a.out
+```
+(You can also use g++, but it may require some code changes)
