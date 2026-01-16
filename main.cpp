@@ -215,6 +215,9 @@ int main() {
   SDL_Color textColor = {0, 255, 255};
 
   while (running) {
+    // Stickman's leg
+    bool lL = maze[(sY + sH + vsY) / rh][sX / rw] == 1;
+    bool lR = maze[(sY + sH + vsY) / rh][(sX + sW - 1) / rw] == 1;
     if (clickTimer == 18750) {
       // 1000 (ms) * 60 (s) * 5 (m), divide by 16.  so this is ~5 minute.
       clickTimer = 0;
@@ -273,15 +276,15 @@ int main() {
 	    ((mmX >= buttonUp.x && mmX <= buttonUp.x + buttonUp.w) &&
 	     (mmY >= buttonUp.y && mmY <= buttonUp.y + buttonUp.h))) {
 	  if (!isCursor) {
-	    if (maze[(sY - 10) / rh][sX / rw] == 1) {
+	    if ((!lR && !lL ? maze[(sY / rh) - 1][sX / rw] : maze[(sY - 15) / rh][sX / rw] == 1)) {
 	      // need update for the condition: currently have bug
-	      // sY - 10, 10:  5 (speed of stickman's jump) + 5 (idk what but it's reduce that bug)
-	      // buttonSwap.w = 200;
+	      // sY - 10, 10:  5 (speed of stickman's jump) + 10 (idk what its that, but it's reduce that bug)
+	      // If stickman on ground, check if ahead there a block, if not, check if stickman move ahead, stickman has collision
+	      // I bit struggle in this part, always buggy. I hope future me or anyone fix this.
 	      isJump = true;
 	      vsY = -5;
 	    } else {
 	      vsY = 0;
-	      // buttonSwap.w = 100;
 	      sY -= (sY % rh) - 1;
 	      // can be sY = rh * (sY / rh)  + 1;
 	    }
@@ -382,8 +385,8 @@ int main() {
     if (vsY > rh - 1)
       vsY = rh - 1;
     // Stickman gravity
-    bool lL = maze[(sY + sH + vsY) / rh][sX / rw] == 1;
-    bool lR = maze[(sY + sH + vsY) / rh][(sX + sW - 1) / rw] == 1;
+    lL = maze[(sY + sH + vsY) / rh][sX / rw] == 1;
+    lR = maze[(sY + sH + vsY) / rh][(sX + sW - 1) / rw] == 1;
     // check if stickman's leg on air
     if (lL && lR) {
       vsY += gravity;
