@@ -172,7 +172,7 @@ int main() {
   std::vector<SDL_Rect> obstacles;
   std::uniform_int_distribution<int> dX(3 * rw, (COLS * rw) - 128 - 1);
   std::uniform_int_distribution<int> dY(3 * rh, (ROWS * rh) - 128 - 1);
-  for (int i = 0; i < 200; i++) {
+  for (int i = 0; i < 50; i++) {
     SDL_Rect obs;
     obs.x = dX(gen);
     obs.y = dY(gen);
@@ -198,7 +198,7 @@ int main() {
   bool isCursor = false;
   bool isJump = false;
   bool isGameOver = false;
-  uint8_t click = 20;
+  uint8_t click = 60;
   int clickTimer = 0;
   SDL_FingerID fingerId1 = -1;
   SDL_FingerID fingerId2 = -1;
@@ -218,7 +218,7 @@ int main() {
     if (clickTimer == 18750) {
       // 1000 (ms) * 60 (s) * 5 (m), divide by 16.  so this is ~5 minute.
       clickTimer = 0;
-      click = 20;
+      click = 60;
     }
     int mX, mY, mmX, mmY;
     camera.x = cX - w / 2;
@@ -273,12 +273,17 @@ int main() {
 	    ((mmX >= buttonUp.x && mmX <= buttonUp.x + buttonUp.w) &&
 	     (mmY >= buttonUp.y && mmY <= buttonUp.y + buttonUp.h))) {
 	  if (!isCursor) {
-	    if (maze[(sY / rh) - 1][sX / rw] == 1) {
+	    if (maze[(sY - 10) / rh][sX / rw] == 1) {
 	      // need update for the condition: currently have bug
+	      // sY - 10, 10:  5 (speed of stickman's jump) + 5 (idk what but it's reduce that bug)
+	      // buttonSwap.w = 200;
 	      isJump = true;
 	      vsY = -5;
 	    } else {
-	      sY -= (sY % rh);
+	      vsY = 0;
+	      // buttonSwap.w = 100;
+	      sY -= (sY % rh) - 1;
+	      // can be sY = rh * (sY / rh)  + 1;
 	    }
 	  }
 	}
@@ -337,15 +342,16 @@ int main() {
 	  ((mmX >= buttonRight.x && mmX <= buttonRight.x + buttonRight.w) &&
 	   (mmY >= buttonRight.y && mmY <= buttonRight.y + buttonRight.h))) {
 	if (isCursor) {
-	  if (maze[cY / rh][(cX / rw) + 1] == 1)
+	  if (maze[cY / rh][(cX + 28 + 10) / rw] == 1)
 	    cX += 10;
 	  else
-	    cX += 10 - (cX % rw);
+	    cX += rw - ((cX + 28) % rw) - 1;  // 28 = cursor's width
 	} else {
-	  if (maze[sY / rh][(sX / rw) + 1] == 1)
+	  if (maze[sY / rh][(sX + sW + 10) / rw] == 1)
 	    sX += 10;
 	  else
-	    sX += 10 - (sX % rw);
+	    sX += rw - ((sX + sW) % rw) - 1;
+	  // its noclip when I don't add "1"
 	}
       }
 

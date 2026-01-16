@@ -27,7 +27,7 @@ Tombol on-screen:
 Saat ini tidak ada
 
 ## Cara kalah
-Saat ini tidak ada
+Stickman menyentuh rintangan.
 
 # English version
 
@@ -60,4 +60,4 @@ On-screen buttons:
 Currently none
 
 ## How to lose
-Currently none
+Stickman hit an obstacle.
